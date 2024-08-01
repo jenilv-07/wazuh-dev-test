@@ -118,7 +118,7 @@ def process_agents(agent_id, component, configuration, timeout=2):
         p.join(timeout=timeout)
         if p.is_alive():
             p.terminate()
-            response_queue.put((p.name, "ok", "Response timeout"))
+            response_queue.put((p.name, "err", "Response timeout"))
 
     responses = []
     while not response_queue.empty():
