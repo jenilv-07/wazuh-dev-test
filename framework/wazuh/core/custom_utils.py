@@ -119,7 +119,7 @@ def process_agents(agent_id, component, configuration, timeout=2):
         responses.append(response_queue.get())
     custom_logger(f"the responce of the prosses anget : {responses}")
     
-    for item in data:
+    for item in responses:
     # Unpack the tuple
         _, rec_error, rec_data = item
     custom_logger(f"unpack the data from list id : {_}, rec_error : {rec_error}, rec_data : {rec_data}")
@@ -133,7 +133,7 @@ def process_agents(agent_id, component, configuration, timeout=2):
                     data['authd.pass'] = f.read().rstrip()
             except IOError:
                 pass
-
+        custom_logger(f"prossec the agetn funcion return data is : {data}")
         return data
     else:
         raise WazuhError(1117 if "No such file or directory" in rec_data or "Cannot send request" in rec_data else 1116,
