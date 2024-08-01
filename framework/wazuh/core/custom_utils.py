@@ -99,7 +99,7 @@ def handle_agent(agent_id,component,configuration,response_queue):
         custom_logger(f"ERROR: {unhandled_exc}")
         response_queue.put((agent_id, "error", str(unhandled_exc)))
 
-def process_agents(agent_id, component, configuration, timeout=2):
+def process_agents(agent_id, component, configuration, timeout=1):
     from multiprocessing import Queue
 
     processes = []
