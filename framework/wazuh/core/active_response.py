@@ -11,6 +11,7 @@ from wazuh.core.exception import WazuhError
 from wazuh.core.utils import WazuhVersion
 from wazuh.core.wazuh_queue import WazuhQueue
 from wazuh.core.wazuh_socket import create_wazuh_socket_message
+from custom_utils import process_agents
 
 
 def create_message(command: str = '', custom: bool = False, arguments: list = None) -> str:
@@ -125,9 +126,9 @@ def send_ar_message(agent_id: str = '', wq: WazuhQueue = None, command: str = ''
 
     # Once we know the agent is active, store version
     agent_version = agent_info['version']
-
+    
     # Check if AR is enabled
-    agent_conf = Agent(agent_id).get_config('com', 'active-response', agent_version)
+    agent_conf = process_agents(agent_id)
     if agent_conf['active-response']['disabled'] == 'yes':
         raise WazuhError(1750)
 
