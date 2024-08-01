@@ -119,9 +119,10 @@ def process_agents(agent_id, component, configuration, timeout=2):
         responses.append(response_queue.get())
     custom_logger(f"the responce of the prosses anget : {responses}")
     
-    rec_error = responses[1]
-    rec_data = responses[2]
-    
+    for item in data:
+    # Unpack the tuple
+        _, rec_error, rec_data = item
+    custom_logger(f"unpack the data from list id : {_}, rec_error : {rec_error}, rec_data : {rec_data}")
     if rec_error == 'ok' or rec_error == 0:
         data = json.loads(rec_data) if isinstance(rec_data, str) else rec_data
 
