@@ -125,14 +125,17 @@ def process_agents(agent_id, component, configuration, timeout=2):
         responses.append(response_queue.get())
     custom_logger(f"the responce of the prosses anget : {responses}")
     
-    if responses:
+    if len(responses) == 0 :
+        rec_error = "ok"
+        rec_data = "Response timeout"
+        
+    elif len(responses) > 0:
         for item in responses:
-    # Unpack the tuple
+        # Unpack the tuple
             _, rec_error, rec_data = item 
         custom_logger(f"unpack the data from list id : {_}, rec_error : {rec_error}, rec_data : {rec_data}")
     else:
-        rec_error = "ok"
-        rec_data = "Response timeout"
+        WazuhError(3036)
     
     if rec_error == 'ok' or rec_error == 0:
         data = json.loads(rec_data) if isinstance(rec_data, str) else rec_data
