@@ -8,6 +8,7 @@ from wazuh.core.exception import WazuhException, WazuhError, WazuhResourceNotFou
 from wazuh.core.wazuh_queue import WazuhQueue
 from wazuh.core.results import AffectedItemsWazuhResult
 from wazuh.rbac.decorators import expose_resources
+from wazuh.core.custom_utils import custom_logger
 
 
 @expose_resources(actions=['active-response:command'], resources=['agent:id:{agent_list}'],
@@ -55,4 +56,7 @@ def run_command(agent_list: list = None, command: str = '', arguments: list = No
                     result.add_failed_item(id_=agent_id, error=e)
             result.affected_items.sort(key=int)
 
+    # logger
+    custom_logger(f"runcommand return : {result}")
+    
     return result
