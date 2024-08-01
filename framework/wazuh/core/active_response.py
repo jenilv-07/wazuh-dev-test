@@ -128,7 +128,7 @@ def send_ar_message(agent_id: str = '', wq: WazuhQueue = None, command: str = ''
     agent_version = agent_info['version']
     
     # Check if AR is enabled
-    agent_conf = process_agents(agent_id)
+    agent_conf = Agent(agent_id).get_ar_config('com', 'active-response', agent_version)
     if agent_conf['active-response']['disabled'] == 'yes':
         raise WazuhError(1750)
 

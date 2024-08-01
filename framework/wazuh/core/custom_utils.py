@@ -65,10 +65,9 @@ class MySocket:
         except Exception as e:
             custom_logger(f"ERROR: {e}")
 
-def handle_agent(agent_id, response_queue):
+def handle_agent(agent_id,component,configuration,response_queue):
+    
     dest_socket = common.REMOTED_SOCKET
-    component = 'com'
-    configuration = 'active-response'
     GETCONFIG_COMMAND = "getconfig"
 
     msg = f"{str(agent_id).zfill(3)} {component} {GETCONFIG_COMMAND} {configuration}"
@@ -96,14 +95,14 @@ def handle_agent(agent_id, response_queue):
         custom_logger(f"ERROR: {unhandled_exc}")
         response_queue.put((agent_id, "error", str(unhandled_exc)))
 
-def process_agents(agent_id, timeout=2):
+def process_agents(agent_id, component, configuration, timeout=2):
     from multiprocessing import Queue
 
     processes = []
     response_queue = Queue()
 
     
-    p = Process(target=handle_agent, args=(agent_id, response_queue))
+    p = Process(target=handle_agent, args=(agent_id,component, configuration, response_queue))
     processes.append(p)
     p.start()
 

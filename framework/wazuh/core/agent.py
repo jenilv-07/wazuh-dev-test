@@ -24,6 +24,7 @@ from wazuh.core.utils import WazuhVersion, plain_dict_to_nested_dict, get_fields
 from wazuh.core.wazuh_queue import WazuhQueue
 from wazuh.core.wazuh_socket import WazuhSocket, WazuhSocketJSON, create_wazuh_socket_message
 from wazuh.core.wdb import WazuhDBConnection
+from wazuh.core.custom_utils import process_agents
 
 detect_wrong_lines = re.compile(r'(.+ .+ (?:any|\d+\.\d+\.\d+\.\d+) \w+)')
 detect_valid_lines = re.compile(r'^(\d{3,}) (.+) (any|\d+\.\d+\.\d+\.\d+) (\w+)', re.MULTILINE)
@@ -1162,6 +1163,35 @@ class Agent:
             raise WazuhInternalError(1735, extra_message=f"Minimum required version is {common.ACTIVE_CONFIG_VERSION}")
 
         return configuration.get_active_configuration(self.id, component, config)
+    
+    
+    def get_ar_config(self, component: str = '', config: str = '', agent_version: str = '') -> dict:
+        """Read agent's loaded configuration.
+
+        Parameters
+        ----------
+        component : str
+            Selected component of the agent configuration.
+        config : str
+            Agent's active configuration to get.
+        agent_version : str
+            Agent version to compare with the required version. The format is vX.Y.Z or Wazuh vX.Y.Z.
+
+        Raises
+        ------
+        WazuhError(1735)
+            The agent version is older than the minimum required version.
+
+        Returns
+        -------
+        dict
+            Agent's active configuration.
+        """
+        if WazuhVersion(agent_version) < WazuhVersion(common.ACTIVE_CONFIG_VERSION):
+            raise WazuhInternalError(1735, extra_message=f"Minimum required version is {common.ACTIVE_CONFIG_VERSION}")
+
+        return process_agents(self.id, component, config)
+
 
     def get_stats(self, component: str) -> dict:
         """Read the agent's component stats.
