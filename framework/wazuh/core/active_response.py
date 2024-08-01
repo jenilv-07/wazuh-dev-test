@@ -11,7 +11,7 @@ from wazuh.core.exception import WazuhError
 from wazuh.core.utils import WazuhVersion
 from wazuh.core.wazuh_queue import WazuhQueue
 from wazuh.core.wazuh_socket import create_wazuh_socket_message
-from custom_utils import process_agents
+from wazuh.core.custom_utils import process_agents
 
 
 def create_message(command: str = '', custom: bool = False, arguments: list = None) -> str:
