@@ -1,9 +1,11 @@
+import json
 import socket
 from struct import pack, unpack
 from multiprocessing import Process
 from wazuh.core import common
-import os
+from os import remove, path as os_path
 from datetime import datetime
+from wazuh.core.exception import WazuhError
 
 class WazuhInternalError(Exception):
     pass
@@ -115,5 +117,23 @@ def process_agents(agent_id, component, configuration, timeout=2):
     responses = []
     while not response_queue.empty():
         responses.append(response_queue.get())
+    custom_logger(f"the responce of the prosses anget : {responses}")
+    
+    rec_error = responses[1]
+    rec_data = responses[2]
+    
+    if rec_error == 'ok' or rec_error == 0:
+        data = json.loads(rec_data) if isinstance(rec_data, str) else rec_data
 
-    return responses
+        # Include password if auth->use_password enabled and authd.pass file exists
+        if data.get('auth', {}).get('use_password') == 'yes':
+            try:
+                with open(os_path.join(common.WAZUH_PATH, "etc", "authd.pass"), 'r') as f:
+                    data['authd.pass'] = f.read().rstrip()
+            except IOError:
+                pass
+
+        return data
+    else:
+        raise WazuhError(1117 if "No such file or directory" in rec_data or "Cannot send request" in rec_data else 1116,
+                         extra_message=f'{component}:{configuration}')
