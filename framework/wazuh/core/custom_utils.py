@@ -117,8 +117,11 @@ def process_agents(agent_id, component, configuration, timeout=2):
     for p in processes:
         p.join(timeout=timeout)
         if p.is_alive():
+            custom_logger("prosses is live")
             p.terminate()
+            custom_logger("prosse termineted")
             response_queue.put((p.name, "err", "Response timeout"))
+            custom_logger("add the responce of the timoute in code")
 
     responses = []
     while not response_queue.empty():
