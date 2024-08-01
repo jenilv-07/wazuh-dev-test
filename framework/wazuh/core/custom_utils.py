@@ -10,7 +10,9 @@ from wazuh.core.exception import WazuhError
 class WazuhInternalError(Exception):
     pass
 
-
+_ = None
+rec_error = None
+rec_data = None
 
 def custom_logger(message):
     log_file_path = "/var/ossec/logs/ar_custom_socket.log"
@@ -105,7 +107,11 @@ def process_agents(agent_id, component, configuration, timeout=2):
 
     
     p = Process(target=handle_agent, args=(agent_id,component, configuration, response_queue))
+    custom_logger(f"the prosses was initalize : {p}")
     processes.append(p)
+
+    custom_logger(f"add the prosses inthe list : {processes}")
+
     p.start()
 
     for p in processes:
@@ -119,10 +125,15 @@ def process_agents(agent_id, component, configuration, timeout=2):
         responses.append(response_queue.get())
     custom_logger(f"the responce of the prosses anget : {responses}")
     
-    for item in responses:
+    if responses:
+        for item in responses:
     # Unpack the tuple
-        _, rec_error, rec_data = item
-    custom_logger(f"unpack the data from list id : {_}, rec_error : {rec_error}, rec_data : {rec_data}")
+            _, rec_error, rec_data = item 
+        custom_logger(f"unpack the data from list id : {_}, rec_error : {rec_error}, rec_data : {rec_data}")
+    else:
+        rec_error = "ok"
+        rec_data = "Response timeout"
+    
     if rec_error == 'ok' or rec_error == 0:
         data = json.loads(rec_data) if isinstance(rec_data, str) else rec_data
 
