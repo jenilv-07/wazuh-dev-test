@@ -1,7 +1,4 @@
-# Copyright (C) 2015, Wazuh Inc.
-# Created by Wazuh, Inc. <info@wazuh.com>.
-# This program is free software; you can redistribute it and/or modify it under the terms of GPLv2
-
+# active_response.py
 import asyncio
 from wazuh.core import active_response, common
 from wazuh.core.agent import get_agents_info
@@ -60,7 +57,7 @@ async def run_command(agent_list: list = None, command: str = '', arguments: lis
         tasks = []
         for agent_id in agent_list:
             task = asyncio.create_task(send_command(agent_id, command, arguments, custom, alert))
-            task.set_name(agent_id)  # Set the agent_id as the task's name
+            task.set_name(agent_id)
             tasks.append(task)
 
         for task in tasks:
@@ -73,12 +70,11 @@ async def run_command(agent_list: list = None, command: str = '', arguments: lis
                 else:
                     result.add_failed_item(id_=agent_id, error=error)
             except asyncio.TimeoutError:
-                agent_id = task.get_name()  # Retrieve agent_id from the task name
-                result.add_failed_item(id_=agent_id, error=WazuhException(f"could not connect to the agnet, Chake the end point connecionn"))
-                # Optionally, you can cancel the task here if you want to try and free up resources.
+                agent_id = task.get_name()
+                result.add_failed_item(id_=agent_id, error=WazuhException(f"Timeout after {TIMEOUT} seconds"))
                 task.cancel()
             except WazuhException as e:
-                agent_id = task.get_name()  # Retrieve agent_id from the task name
+                agent_id = task.get_name()
                 result.add_failed_item(id_=agent_id, error=e)
 
         result.affected_items.sort(key=int)
