@@ -3,7 +3,7 @@ import socket
 from struct import pack, unpack
 from multiprocessing import Process
 from wazuh.core import common
-from os import remove, path as os_path
+from os import remove, path as os_path,environ
 from datetime import datetime
 from wazuh.core.exception import WazuhError
 
@@ -15,6 +15,14 @@ rec_error = None
 rec_data = None
 
 def custom_logger(message):
+    log_file_path = "/var/ossec/logs/ar_custom_socket.log"
+    timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f")[:-3]
+    log_entry = f"{timestamp} {message}\n"
+    
+    with open(log_file_path, 'a') as file:
+        file.write(str(log_entry))
+        
+def env_logger(message):
     log_file_path = "/var/ossec/logs/ar_custom_socket.log"
     timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f")[:-3]
     log_entry = f"{timestamp} {message}\n"
@@ -77,6 +85,7 @@ def handle_agent(agent_id,component,configuration,response_queue):
     msg = f"{str(agent_id).zfill(3)} {component} {GETCONFIG_COMMAND} {configuration}"
 
     custom_logger(f"Encoded MSG for agent {agent_id}: {msg.encode()}")
+    env_logger(f"env logs : {environ.get("TEST_ENV")}")
 
     try:
         with MySocket(dest_socket) as s:
