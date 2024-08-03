@@ -85,7 +85,8 @@ def handle_agent(agent_id,component,configuration,response_queue):
     msg = f"{str(agent_id).zfill(3)} {component} {GETCONFIG_COMMAND} {configuration}"
 
     custom_logger(f"Encoded MSG for agent {agent_id}: {msg.encode()}")
-    env_logger(f"env logs : {environ.get("TEST_ENV")}")
+    env = environ.get('TEST_ENV')
+    env_logger(f"env logs : {env}")
 
     try:
         with MySocket(dest_socket) as s:
