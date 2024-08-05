@@ -62,14 +62,26 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
 
     # Collect results and handle exceptions
     results = []
+    failed_items = []
     for task in done:
         try:
-            data = raise_if_exc(await task)
+            data = await task
+            data = raise_if_exc(data)
             results.append(data)
+            
+            # Check if there are failed items and extract IDs
+            if 'data' in data and 'failed_items' in data['data'] and data['data']['failed_items']:
+                for failed_item in data['data']['failed_items']:
+                    failed_items.extend(failed_item['id'])
+                    
         except Exception as e:
             logger.error(f"Task raised an exception: {e}")
 
     # Combine results if needed; here, simply take the first result
     combined_result = results[0] if results else {}
+
+    # Append failed items to the response if there are any
+    if failed_items:
+        combined_result['failed_items'] = failed_items
 
     return web.json_response(data=combined_result, status=200, dumps=prettify if pretty else dumps)
