@@ -78,7 +78,8 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     # Cancel any pending tasks
     for task in pending:
         task.cancel()
-        result.add_failed_item(id_=task.get_name(), error={"error":"chek the agent connecion in not stabal"})
+        result.failed_items.append(id=task.get_name(), error={"error":"chek the agent connecion in not stabal"})
+        result.total_affected_items += 1
 
     # Collect results and handle exceptions
     for task in done:

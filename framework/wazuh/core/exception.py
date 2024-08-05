@@ -587,7 +587,8 @@ class WazuhException(Exception):
                'remediation': 'Make sure you introduce the token within the field "token"'},
 
         # Vulnerability detector
-        8000: {'message': 'Unexpected error trying to request vulnerability detector scan'}
+        8000: {'message': 'Unexpected error trying to request vulnerability detector scan'},
+        9000: {'message': 'The request was not sed to the agent'}
     }
 
     # Reserve agent upgrade custom errors
