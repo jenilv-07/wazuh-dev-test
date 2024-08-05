@@ -74,14 +74,16 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     # Wait for all tasks to complete or timeout
     done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
 
+    logger.info(f"complited task : {done} ")
     # Cancel any pending tasks
     for task in pending:
         task.cancel()
-        result.add_failed_item(id_=task.get_name(), error="chek the agent connecion in not stabal")
+        result.add_failed_item(id_=task.get_name(), error={"error":"chek the agent connecion in not stabal"})
 
     # Collect results and handle exceptions
     for task in done:
         try:
+            
             data = raise_if_exc(await task)
             logger.info(f"-----------{data}------------")
             result.affected_items.append(task.get_name())
