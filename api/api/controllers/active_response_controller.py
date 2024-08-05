@@ -1,7 +1,3 @@
-# Copyright (C) 2015, Wazuh Inc.
-# Created by Wazuh, Inc. <info@wazuh.com>.
-# This program is a free software; you can redistribute it and/or modify it under the terms of GPLv2
-
 import asyncio
 import logging
 
@@ -61,44 +57,34 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     for task in pending:
         task.cancel()
 
-    affected_items = []
-    failed_items = []
-    for task in done:
-        try:
-            data = await task
-            data = raise_if_exc(data)
-            
-            # Check if there are affected items and extract
-            if 'data' in data and 'affected_items' in data['data']:
-                affected_items.extend(data['data']['affected_items'])
-            
-            # Check if there are failed items and extract IDs
-            if 'data' in data and 'failed_items' in data['data'] and data['data']['failed_items']:
-                for failed_item in data['data']['failed_items']:
-                    failed_items.extend(failed_item['id'])
-                    
-        except Exception as e:
-            logger.error(f"Task raised an exception: {e}")
-
-    # Construct the result using the AffectedItemsWazuhResult class
-    total_affected_items = len(affected_items)
-    total_failed_items = len(failed_items)
-    
-    # Determine the message based on the result
-    if total_affected_items > 0 and total_failed_items == 0:
-        message = "AR command was sent to all agents"
-    elif total_failed_items > 0 and total_affected_items > 0:
-        message = "AR command was not sent to some agents"
-    else:
-        message = "AR command was not sent to any agent"
-
     result = AffectedItemsWazuhResult(
-        affected_items=affected_items,
-        total_affected_items=total_affected_items,
-        total_failed_items=total_failed_items,
         all_msg='AR command was sent to all agents',
         some_msg='AR command was not sent to some agents',
         none_msg='AR command was not sent to any agent'
     )
 
+    # Process the completed tasks
+    for task in done:
+        try:
+            data = await task
+            data = raise_if_exc(data)
+            
+            # Check if there are affected items
+            if 'data' in data and 'affected_items' in data['data']:
+                affected_items = data['data']['affected_items']
+                result.affected_items.extend(affected_items)
+                result.total_affected_items += len(affected_items)
+            
+            # Check if there are failed items
+            if 'data' in data and 'failed_items' in data['data'] and data['data']['failed_items']:
+                for failed_item in data['data']['failed_items']:
+                    result.add_failed_item(id_=failed_item['id'], error=failed_item.get('error'))
+
+        except Exception as e:
+            logger.error(f"Task raised an exception: {e}")
+
+    # Sort affected items
+    result.affected_items.sort(key=int)
+
+    # Return the result as JSON
     return web.json_response(data=result.to_dict(), status=200, dumps=prettify if pretty else dumps)
