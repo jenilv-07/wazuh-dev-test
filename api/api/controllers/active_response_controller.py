@@ -69,7 +69,7 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     task = asyncio.create_task(dapi.distribute_function())
     
     for i in range(0, 10):
-        logger.info(f'count: {i}, Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}')
+        logger.info(f"count: {i}, Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
         
         if(task2.done()):
             break
