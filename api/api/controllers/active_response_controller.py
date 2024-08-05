@@ -6,6 +6,9 @@ import logging
 
 from aiohttp import web
 
+import asyncio
+import time
+
 import wazuh.active_response as active_response
 from api.encoder import dumps, prettify
 from api.models.active_response_model import ActiveResponseModel
@@ -47,6 +50,13 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
                           broadcasting=agents_list == '*',
                           rbac_permissions=request['token_info']['rbac_policies']
                           )
-    data = raise_if_exc(await dapi.distribute_function())
+    
+    task = dapi.distribute_function()
+    
+    for i in range(0, 10):
+        logger.info(f'count: {i}, Time: {time.time}')
+        await asyncio.sleep(1)
+    
+    data = raise_if_exc(await task)
 
     return web.json_response(data=data, status=200, dumps=prettify if pretty else dumps)
