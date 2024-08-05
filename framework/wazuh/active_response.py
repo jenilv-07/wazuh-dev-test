@@ -48,7 +48,7 @@ def run_command(agent_list: list = None, command: str = '', arguments: list = No
             system_agents = get_agents_info()
             for agent_id in agent_list:
                 
-                logging.INFO(f'Sending AR to agent: {agent_id}')
+                logging.info(f'Sending AR to agent: {agent_id}')
                 
                 try:
                     if agent_id not in system_agents:
@@ -57,12 +57,12 @@ def run_command(agent_list: list = None, command: str = '', arguments: list = No
                         raise WazuhError(1703)
                     active_response.send_ar_message(agent_id, wq, command, arguments, custom, alert)
                     
-                    logging.INFO(f'AR sent for {agent_id}')
+                    logging.info(f'AR sent for {agent_id}')
                     
                     result.affected_items.append(agent_id)
                     result.total_affected_items += 1
                 except WazuhException as e:
-                    logging.ERROR(f'id_={agent_id}, error={e}')
+                    logging.error(f'id_={agent_id}, error={e}')
                     result.add_failed_item(id_=agent_id, error=e)
             result.affected_items.sort(key=int)
 
