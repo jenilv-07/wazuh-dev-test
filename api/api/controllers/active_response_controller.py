@@ -44,27 +44,32 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
 
     # Create tasks for each agent
     for agent in agents_list:
-        if agent == "000":
-            raise WazuhError(1703)
-        if agent not in system_agents:
-            raise WazuhResourceNotFound(1701)
-        f_kwargs = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': agent})
+        
+        try:
+        
+            if agent == "000":
+                raise WazuhError(1703)
+            if agent not in system_agents:
+                raise WazuhResourceNotFound(1701)
+            f_kwargs = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': agent})
 
-        dapi = DistributedAPI(
-            f=active_response.run_command,
-            f_kwargs=remove_nones_to_dict(f_kwargs),
-            request_type='distributed_master',
-            is_async=False,
-            wait_for_complete=wait_for_complete,
-            logger=logger,
-            broadcasting=agents_list == '*',
-            rbac_permissions=request['token_info']['rbac_policies']
-        )
+            dapi = DistributedAPI(
+                f=active_response.run_command,
+                f_kwargs=remove_nones_to_dict(f_kwargs),
+                request_type='distributed_master',
+                is_async=False,
+                wait_for_complete=wait_for_complete,
+                logger=logger,
+                broadcasting=agents_list == '*',
+                rbac_permissions=request['token_info']['rbac_policies']
+            )
 
-        # Create a task and assign a name to it
-        task = asyncio.create_task(dapi.distribute_function())
-        task.set_name(agent)
-        tasks.append(task)
+            # Create a task and assign a name to it
+            task = asyncio.create_task(dapi.distribute_function())
+            task.set_name(agent)
+            tasks.append(task)
+        except WazuhException as e:
+            result.add_failed_item(id_=agent, error=e)
 
     # Wait for all tasks to complete or timeout
     done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
