@@ -13,6 +13,7 @@ from api.models.active_response_model import ActiveResponseModel
 from api.models.base_model_ import Body
 from api.util import remove_nones_to_dict, raise_if_exc
 from wazuh.core.cluster.dapi.dapi import DistributedAPI
+from wazuh.core.results import AffectedItemsWazuhResult
 
 logger = logging.getLogger('wazuh-api')
 
@@ -60,7 +61,6 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     for task in pending:
         task.cancel()
 
-    # Collect results and handle exceptions
     affected_items = []
     failed_items = []
     for task in done:
@@ -68,11 +68,11 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
             data = await task
             data = raise_if_exc(data)
             
-            # Check if there are affected items
+            # Check if there are affected items and extract
             if 'data' in data and 'affected_items' in data['data']:
                 affected_items.extend(data['data']['affected_items'])
-                
-            # Check if there are failed items
+            
+            # Check if there are failed items and extract IDs
             if 'data' in data and 'failed_items' in data['data'] and data['data']['failed_items']:
                 for failed_item in data['data']['failed_items']:
                     failed_items.extend(failed_item['id'])
@@ -80,21 +80,25 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
         except Exception as e:
             logger.error(f"Task raised an exception: {e}")
 
-    # Sort affected_items if needed (e.g., by some criteria)
-    affected_items = sorted(affected_items, key=lambda x: x.get('id', ''))
+    # Construct the result using the AffectedItemsWazuhResult class
+    total_affected_items = len(affected_items)
+    total_failed_items = len(failed_items)
+    
+    # Determine the message based on the result
+    if total_affected_items > 0 and total_failed_items == 0:
+        message = "AR command was sent to all agents"
+    elif total_failed_items > 0 and total_affected_items > 0:
+        message = "AR command was not sent to some agents"
+    else:
+        message = "AR command was not sent to any agent"
 
-    # Construct the final result
-    result = {
-        'data': {
-            'affected_items': affected_items,
-            'total_affected_items': len(affected_items),
-            'total_failed_items': len(failed_items),
-            'failed_items': [
-                {'id': failed_items}
-            ] if failed_items else []
-        },
-        'message': "AR command was not sent to some agents" if failed_items else "AR command was sent successfully",
-        'error': 1 if failed_items else 0
-    }
+    result = AffectedItemsWazuhResult(
+        affected_items=affected_items,
+        total_affected_items=total_affected_items,
+        total_failed_items=total_failed_items,
+        all_msg='AR command was sent to all agents',
+        some_msg='AR command was not sent to some agents',
+        none_msg='AR command was not sent to any agent'
+    )
 
-    return web.json_response(data=result, status=200, dumps=prettify if pretty else dumps)
+    return web.json_response(data=result.to_dict(), status=200, dumps=prettify if pretty else dumps)
