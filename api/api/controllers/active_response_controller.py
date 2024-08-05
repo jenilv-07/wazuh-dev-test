@@ -39,7 +39,22 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     """
     # Get body parameters
     Body.validate_content_type(request, expected_content_type='application/json')
-    f_kwargs = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': agents_list})
+    
+    f_kwargs2 = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': "001"})
+
+    dapi2 = DistributedAPI(f=active_response.run_command,
+                          f_kwargs=remove_nones_to_dict(f_kwargs2),
+                          request_type='distributed_master',
+                          is_async=False,
+                          wait_for_complete=wait_for_complete,
+                          logger=logger,
+                          broadcasting=agents_list == '*',
+                          rbac_permissions=request['token_info']['rbac_policies']
+                          )
+    
+    task2 = asyncio.create_task(dapi2.distribute_function())
+    
+    f_kwargs = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': "agents_list"})
 
     dapi = DistributedAPI(f=active_response.run_command,
                           f_kwargs=remove_nones_to_dict(f_kwargs),
@@ -51,10 +66,21 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
                           rbac_permissions=request['token_info']['rbac_policies']
                           )
     
-    task = dapi.distribute_function()
+    task = asyncio.create_task(dapi.distribute_function())
     
     for i in range(0, 10):
-        logger.info(f'count: {i}, Time: {time.time}')
+        logger.info(f'count: {i}, Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}')
+        
+        if(task2.done()):
+            break
+        
+        if(task.done()):
+            logger.info(f'main task is completed.')
+        
+        if(i == 9):
+            logger.info(f'Cancelling task')
+            task2.cancel()
+                
         await asyncio.sleep(1)
     
     data = raise_if_exc(await task)
