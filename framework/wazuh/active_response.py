@@ -9,6 +9,10 @@ from wazuh.core.wazuh_queue import WazuhQueue
 from wazuh.core.results import AffectedItemsWazuhResult
 from wazuh.rbac.decorators import expose_resources
 
+import logging
+
+logger = logging.getLogger('wazuh-api')
+
 
 @expose_resources(actions=['active-response:command'], resources=['agent:id:{agent_list}'],
                   post_proc_kwargs={'exclude_codes': [1701, 1703]})
@@ -43,15 +47,22 @@ def run_command(agent_list: list = None, command: str = '', arguments: list = No
         with WazuhQueue(common.AR_SOCKET) as wq:
             system_agents = get_agents_info()
             for agent_id in agent_list:
+                
+                logging.INFO(f'Sending AR to agent: {agent_id}')
+                
                 try:
                     if agent_id not in system_agents:
                         raise WazuhResourceNotFound(1701)
                     if agent_id == "000":
                         raise WazuhError(1703)
                     active_response.send_ar_message(agent_id, wq, command, arguments, custom, alert)
+                    
+                    logging.INFO(f'AR sent for {agent_id}')
+                    
                     result.affected_items.append(agent_id)
                     result.total_affected_items += 1
                 except WazuhException as e:
+                    logging.ERROR(f'id_={agent_id}, error={e}')
                     result.add_failed_item(id_=agent_id, error=e)
             result.affected_items.sort(key=int)
 
