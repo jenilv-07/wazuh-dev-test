@@ -36,6 +36,7 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     tasks = []
     timeout = 10  # Timeout duration in seconds
     system_agents = get_agents_info()
+    
     result = AffectedItemsWazuhResult(all_msg='AR command was sent to all agents',
                                       some_msg='AR command was not sent to some agents',
                                       none_msg='AR command was not sent to any agent'

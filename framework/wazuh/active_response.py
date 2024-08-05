@@ -8,12 +8,8 @@ from wazuh.core.exception import WazuhException, WazuhError, WazuhResourceNotFou
 from wazuh.core.wazuh_queue import WazuhQueue
 from wazuh.core.results import AffectedItemsWazuhResult
 from wazuh.rbac.decorators import expose_resources
+from wazuh.core.custom_utils import custom_logger
 
-import logging
-
-logger = logging.getLogger('wazuh-api')
-
-result = None
 
 @expose_resources(actions=['active-response:command'], resources=['agent:id:{agent_list}'],
                   post_proc_kwargs={'exclude_codes': [1701, 1703]})
@@ -40,26 +36,27 @@ def run_command(agent_list: list = None, command: str = '', arguments: list = No
     AffectedItemsWazuhResult
         Affected items.
     """
+    result = AffectedItemsWazuhResult(all_msg='AR command was sent to all agents',
+                                      some_msg='AR command was not sent to some agents',
+                                      none_msg='AR command was not sent to any agent'
+                                      )
     if agent_list:
         with WazuhQueue(common.AR_SOCKET) as wq:
             system_agents = get_agents_info()
             for agent_id in agent_list:
-                
-                logging.info(f'Sending AR to agent: {agent_id}')
-                
                 try:
                     if agent_id not in system_agents:
                         raise WazuhResourceNotFound(1701)
                     if agent_id == "000":
                         raise WazuhError(1703)
                     active_response.send_ar_message(agent_id, wq, command, arguments, custom, alert)
-                    
-                    logging.info(f'AR sent for {agent_id}')
-                    
                     result.affected_items.append(agent_id)
                     result.total_affected_items += 1
                 except WazuhException as e:
-                    logging.error(f'id_={agent_id}, error={e}')
                     result.add_failed_item(id_=agent_id, error=e)
+            result.affected_items.sort(key=int)
 
+    # logger
+    custom_logger(f"runcommand return : {result}")
+    
     return result
