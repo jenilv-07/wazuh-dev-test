@@ -9,6 +9,8 @@ from api.models.base_model_ import Body
 from api.util import remove_nones_to_dict, raise_if_exc
 from wazuh.core.cluster.dapi.dapi import DistributedAPI
 from wazuh.core.results import AffectedItemsWazuhResult
+from wazuh.core.exception import WazuhException, WazuhError, WazuhResourceNotFound
+from wazuh.core.agent import get_agents_info
 
 logger = logging.getLogger('wazuh-api')
 
@@ -33,7 +35,7 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     Body.validate_content_type(request, expected_content_type='application/json')
     tasks = []
     timeout = 10  # Timeout duration in seconds
-    
+    system_agents = get_agents_info()
     result = AffectedItemsWazuhResult(all_msg='AR command was sent to all agents',
                                       some_msg='AR command was not sent to some agents',
                                       none_msg='AR command was not sent to any agent'
@@ -41,6 +43,10 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
 
     # Create tasks for each agent
     for agent in agents_list:
+        if agent == "000":
+            raise WazuhError(1703)
+        if agent not in system_agents:
+            raise WazuhResourceNotFound(1701)
         f_kwargs = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': agent})
 
         dapi = DistributedAPI(
@@ -71,9 +77,10 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     for task in done:
         try:
             data = raise_if_exc(await task)
+            logger.info(f"-----------{data}------------")
             result.affected_items.append(task.get_name())
             result.total_affected_items += 1
-        except Exception as e:
+        except WazuhException as e:
             task_name = task.get_name()
             logger.error(f"{task_name} raised an exception: {e}")
     result.affected_items.sort(key=int)

@@ -13,6 +13,7 @@ import logging
 
 logger = logging.getLogger('wazuh-api')
 
+result = None
 
 @expose_resources(actions=['active-response:command'], resources=['agent:id:{agent_list}'],
                   post_proc_kwargs={'exclude_codes': [1701, 1703]})
@@ -39,10 +40,6 @@ def run_command(agent_list: list = None, command: str = '', arguments: list = No
     AffectedItemsWazuhResult
         Affected items.
     """
-    result = AffectedItemsWazuhResult(all_msg='AR command was sent to all agents',
-                                      some_msg='AR command was not sent to some agents',
-                                      none_msg='AR command was not sent to any agent'
-                                      )
     if agent_list:
         with WazuhQueue(common.AR_SOCKET) as wq:
             system_agents = get_agents_info()
@@ -64,6 +61,5 @@ def run_command(agent_list: list = None, command: str = '', arguments: list = No
                 except WazuhException as e:
                     logging.error(f'id_={agent_id}, error={e}')
                     result.add_failed_item(id_=agent_id, error=e)
-            result.affected_items.sort(key=int)
 
     return result
