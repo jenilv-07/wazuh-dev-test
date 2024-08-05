@@ -1,6 +1,5 @@
 import asyncio
 import logging
-
 from aiohttp import web
 
 import wazuh.active_response as active_response
@@ -19,7 +18,7 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
 
     Parameters
     ----------
-    request : connexion.request
+    request : aiohttp.web.Request
     agents_list : str
         List of agents IDs. All possible values from 000 onwards. Default: '*'
     pretty : bool
@@ -29,25 +28,35 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
 
     Returns
     -------
-    web.Response
+    aiohttp.web.Response
     """
     Body.validate_content_type(request, expected_content_type='application/json')
     tasks = []
     timeout = 10  # Timeout duration in seconds
+    
+    result = AffectedItemsWazuhResult(all_msg='AR command was sent to all agents',
+                                      some_msg='AR command was not sent to some agents',
+                                      none_msg='AR command was not sent to any agent'
+                                      )
 
+    # Create tasks for each agent
     for agent in agents_list:
         f_kwargs = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': agent})
 
-        dapi = DistributedAPI(f=active_response.run_command,
-                              f_kwargs=remove_nones_to_dict(f_kwargs),
-                              request_type='distributed_master',
-                              is_async=False,
-                              wait_for_complete=wait_for_complete,
-                              logger=logger,
-                              broadcasting=agents_list == '*',
-                              rbac_permissions=request['token_info']['rbac_policies'])
+        dapi = DistributedAPI(
+            f=active_response.run_command,
+            f_kwargs=remove_nones_to_dict(f_kwargs),
+            request_type='distributed_master',
+            is_async=False,
+            wait_for_complete=wait_for_complete,
+            logger=logger,
+            broadcasting=agents_list == '*',
+            rbac_permissions=request['token_info']['rbac_policies']
+        )
 
+        # Create a task and assign a name to it
         task = asyncio.create_task(dapi.distribute_function())
+        task.set_name(agent)
         tasks.append(task)
 
     # Wait for all tasks to complete or timeout
@@ -56,35 +65,19 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     # Cancel any pending tasks
     for task in pending:
         task.cancel()
+        result.add_failed_item(id_=task.get_name(), error="chek the agent connecion in not stabal")
 
-    result = AffectedItemsWazuhResult(
-        all_msg='AR command was sent to all agents',
-        some_msg='AR command was not sent to some agents',
-        none_msg='AR command was not sent to any agent'
-    )
-
-    # Process the completed tasks
+    # Collect results and handle exceptions
     for task in done:
         try:
-            data = await task
-            data = raise_if_exc(data)
-            
-            # Check if there are affected items
-            if 'data' in data and 'affected_items' in data['data']:
-                affected_items = data['data']['affected_items']
-                result.affected_items.extend(affected_items)
-                result.total_affected_items += len(affected_items)
-            
-            # Check if there are failed items
-            if 'data' in data and 'failed_items' in data['data'] and data['data']['failed_items']:
-                for failed_item in data['data']['failed_items']:
-                    result.add_failed_item(id_=failed_item['id'], error=failed_item.get('error'))
-
+            data = raise_if_exc(await task)
+            result.affected_items.append(task.get_name())
+            result.total_affected_items += 1
         except Exception as e:
-            logger.error(f"Task raised an exception: {e}")
-
-    # Sort affected items
+            task_name = task.get_name()
+            logger.error(f"{task_name} raised an exception: {e}")
     result.affected_items.sort(key=int)
+    # Combine results; here, return all results combined
+    combined_result = result
 
-    # Return the result as JSON
-    return web.json_response(data=result.to_dict(), status=200, dumps=prettify if pretty else dumps)
+    return web.json_response(data=combined_result, status=200, dumps=prettify if pretty else dumps)
