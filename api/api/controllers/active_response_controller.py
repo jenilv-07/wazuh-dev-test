@@ -61,15 +61,18 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
         task.cancel()
 
     # Collect results and handle exceptions
-    results = []
+    affected_items = []
     failed_items = []
     for task in done:
         try:
             data = await task
             data = raise_if_exc(data)
-            results.append(data)
             
-            # Check if there are failed items and extract IDs
+            # Check if there are affected items
+            if 'data' in data and 'affected_items' in data['data']:
+                affected_items.extend(data['data']['affected_items'])
+                
+            # Check if there are failed items
             if 'data' in data and 'failed_items' in data['data'] and data['data']['failed_items']:
                 for failed_item in data['data']['failed_items']:
                     failed_items.extend(failed_item['id'])
@@ -77,11 +80,21 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
         except Exception as e:
             logger.error(f"Task raised an exception: {e}")
 
-    # Combine results if needed; here, simply take the first result
-    combined_result = results[0] if results else {}
+    # Sort affected_items if needed (e.g., by some criteria)
+    affected_items = sorted(affected_items, key=lambda x: x.get('id', ''))
 
-    # Append failed items to the response if there are any
-    if failed_items:
-        combined_result['failed_items'] = failed_items
+    # Construct the final result
+    result = {
+        'data': {
+            'affected_items': affected_items,
+            'total_affected_items': len(affected_items),
+            'total_failed_items': len(failed_items),
+            'failed_items': [
+                {'id': failed_items}
+            ] if failed_items else []
+        },
+        'message': "AR command was not sent to some agents" if failed_items else "AR command was sent successfully",
+        'error': 1 if failed_items else 0
+    }
 
-    return web.json_response(data=combined_result, status=200, dumps=prettify if pretty else dumps)
+    return web.json_response(data=result, status=200, dumps=prettify if pretty else dumps)
