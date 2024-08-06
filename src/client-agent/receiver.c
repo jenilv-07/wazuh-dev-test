@@ -105,6 +105,9 @@ int receive_msg()
             /* If it is an active response message */
             if (strncmp(tmp_msg, EXECD_HEADER, strlen(EXECD_HEADER)) == 0) {
                 tmp_msg += strlen(EXECD_HEADER);
+
+                /*------ set the ACK OF AR FORM HEAR ------*/
+                
 #ifndef WIN32
                 if (agt->execdq >= 0) {
                     if (OS_SendUnix(agt->execdq, tmp_msg, 0) < 0) {

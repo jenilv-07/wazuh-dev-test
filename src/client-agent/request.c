@@ -336,6 +336,8 @@ void * req_receiver(__attribute__((unused)) void * arg) {
 
         mdebug2("req_receiver(): sending '%s' to server", buffer);
 
+        // send the responce to the server
+
         for (attempts = 0; attempts < max_attempts; attempts++) {
             struct timespec timeout;
             struct timeval now = { 0, 0 };
