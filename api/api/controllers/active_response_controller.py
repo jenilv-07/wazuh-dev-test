@@ -18,7 +18,7 @@ def run_active_response(request, agent, return_dict, wait_for_complete):
     """Function to run active response command in a separate process."""
     try:
         logger.info(f"Starting process for agent: {agent}")
-        f_kwargs = ActiveResponseModel.get_kwargs_sync(request, additional_kwargs={'agent_list': agent})
+        f_kwargs = ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': agent})
         logger.info(f"f_kwargs for agent {agent}: {f_kwargs}")
 
         dapi = DistributedAPI(
