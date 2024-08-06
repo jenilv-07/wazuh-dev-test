@@ -75,6 +75,7 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
 
     logger.info(f"complited task : {done} ")
+    logger.info(f"pending task : {pending}")
     # Cancel any pending tasks
     for task in pending:
         task.cancel()
