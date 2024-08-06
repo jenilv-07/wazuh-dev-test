@@ -66,6 +66,7 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     # Cancel any pending tasks
     for task in pending:
         fail_result.append(task)
+        logger.info(f"fail-task : {task}")
         task.cancel()
         
 
