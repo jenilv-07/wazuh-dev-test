@@ -59,17 +59,21 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
 
     # Wait for all tasks to complete or timeout
     done, pending = await asyncio.wait(tasks, timeout=timeout, return_when=asyncio.ALL_COMPLETED)
-
+    result = []
+    fail_result = []
     logger.info(f"complited task : {done} ")
     logger.info(f"pending task : {pending}")
     # Cancel any pending tasks
     for task in pending:
+        fail_result.append(task)
         task.cancel()
+        
 
     # Collect results and handle exceptions
     for task in done:
         try:
             data = raise_if_exc(await task)
+            result.append(data)
             logger.info(f"-----------{data}------------")
             
         except WazuhException as e:
