@@ -10,6 +10,7 @@ from api.util import remove_nones_to_dict, raise_if_exc
 from wazuh.core.cluster.dapi.dapi import DistributedAPI
 from wazuh.core.exception import WazuhException
 
+
 logger = logging.getLogger('wazuh-api')
 
 async def run_command(request, agents_list: str = '*', pretty: bool = False,
@@ -36,8 +37,11 @@ async def run_command(request, agents_list: str = '*', pretty: bool = False,
     
     # Create tasks for each agent
     for agent in agents_list:
+
+        f_kwargs = await ActiveResponseModel.get_kwargs(request, additional_kwargs={'agent_list': agent})
+
         dapi = DistributedAPI(
-        f=active_response.run_command,
+            f=active_response.run_command,
             f_kwargs=remove_nones_to_dict(f_kwargs),
             request_type='distributed_master',
             is_async=False,
