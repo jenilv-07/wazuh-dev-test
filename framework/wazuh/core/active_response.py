@@ -2,6 +2,7 @@
 # Created by Wazuh, Inc. <info@wazuh.com>.
 # This program is free software; you can redistribute it and/or modify it under the terms of GPLv2
 import json
+import os
 
 from wazuh.core import common
 from wazuh.core.agent import Agent
@@ -11,6 +12,7 @@ from wazuh.core.exception import WazuhError
 from wazuh.core.utils import WazuhVersion
 from wazuh.core.wazuh_queue import WazuhQueue
 from wazuh.core.wazuh_socket import create_wazuh_socket_message
+from wazuh.core.env_get import custom_logger
 
 
 def create_message(command: str = '', custom: bool = False, arguments: list = None) -> str:
@@ -119,6 +121,12 @@ def send_ar_message(agent_id: str = '', wq: WazuhQueue = None, command: str = ''
     # Agent basic information
     agent_info = Agent(agent_id).get_basic_information()
 
+    # check the test of env get from os
+    
+    for i in range(1,11):
+        env = os.environ.get('TEST_ENV')
+        custom_logger(f"teh Test ENV of OS : {env}")
+        
     # Check if agent is active
     if agent_info['status'].lower() != 'active':
         raise WazuhError(1707)
